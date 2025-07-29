@@ -8,9 +8,6 @@ RUN apt-get update \
       libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*
 
-ENV CUDA_VISIBLE_DEVICES="-1"
-ENV TF_CPP_MIN_LOG_LEVEL="3"
-
 # Copy and install Python dependencies
 COPY requirements.txt .
 

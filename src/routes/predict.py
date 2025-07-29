@@ -3,7 +3,6 @@ import numpy as np
 from joblib import load
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
-
 from utils.response import http_response_error, http_response_success
 from utils.preprocess import preprocess_img
 from constants.http_enum import HttpStatusCode

@@ -1,3 +1,5 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import io
 import zipfile
 from typing import List
@@ -6,8 +8,6 @@ import cv2
 from tensorflow.keras.applications import EfficientNetB7
 from tensorflow.keras.applications.efficientnet import preprocess_input
 import tensorflow as tf
-
-# tf.shape = keras_shape
 from retinaface import RetinaFace
 
 def build_conv_base(img_height=600, img_width=600):
@@ -19,7 +19,6 @@ def build_conv_base(img_height=600, img_width=600):
 
 conv_base = build_conv_base(img_height=600, img_width=600)
 
-face_detector = RetinaFace(quality="normal")
 def pad_to_square(image: np.ndarray) -> np.ndarray:
     h, w = image.shape[:2]
     diff = abs(h - w)
@@ -57,7 +56,7 @@ async def preprocess_img(content: bytes) -> bytes:
             continue
 
         try:
-            detect = face_detector.detect_faces(img)
+            detect = RetinaFace.detect_faces(img)
         except Exception as e:
             print(f"[DEBUG] RetinaFace failed on {fn}: {e}")
             continue
@@ -65,14 +64,14 @@ async def preprocess_img(content: bytes) -> bytes:
             print(f"[DEBUG] No faces detected in {fn}")
             continue
 
-        for face in detect.values():
-            x1, y1, x2, y2 = face["facial_area"]
-            crop = img[y1:y2, x1:x2]
-            square = pad_to_square(crop)
-            resized = cv2.resize(square, (600, 600))
-
-            rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-            batch.append(rgb)
+        first_face = next(iter(detect.values()))
+        x1, y1, x2, y2 = first_face["facial_area"]
+        
+        crop = img[y1:y2, x1:x2]
+        square = pad_to_square(crop)
+        resized = cv2.resize(square, (600, 600))
+        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        batch.append(rgb)
 
     zip_file.close()
 
