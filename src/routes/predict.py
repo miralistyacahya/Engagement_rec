@@ -1,3 +1,8 @@
+import io
+import os
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+import tensorflow as tf
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import numpy as np
 from joblib import load
@@ -10,7 +15,9 @@ from constants.http_enum import HttpStatusCode
 router = APIRouter(prefix="/predict")
 
 # load Keras model
-MODEL_PATH = "src/lib/model.keras"
+MODEL_PATH = "src/lib/best_model_effs_lstm_gan5.keras"
+# MODEL_PATH = "src/lib/bestmodelv2.h5"
+
 try:
     model = tf.keras.models.load_model(MODEL_PATH)
 except Exception as e:
