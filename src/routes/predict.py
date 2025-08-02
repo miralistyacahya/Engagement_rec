@@ -6,10 +6,12 @@ import tensorflow as tf
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import numpy as np
 from joblib import load
+import zipfile, tempfile
 import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from utils.response import http_response_error, http_response_success
-from utils.preprocess import preprocess_img
+from utils.prepfeat import preprocess_feat
+from utils.prepimg import preprocess_img
 from constants.http_enum import HttpStatusCode
 
 router = APIRouter(prefix="/predict")
@@ -43,7 +45,31 @@ async def predict(
 
     content = await file.read()
     try:
-        npy = await preprocess_img(content)
+        zip_file = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile:
+        raise HTTPException(HttpStatusCode.BadRequest, "Invalid ZIP archive")
+    
+    temp_dir = tempfile.mkdtemp()
+    imgs = []
+
+    for name in zip_file.namelist():
+        if name.lower().endswith((".jpg", ".jpeg", ".png")):
+            dest = os.path.join(temp_dir, os.path.basename(name))
+            with open(dest, "wb") as f:
+                f.write(zip_file.read(name))
+            imgs.append(dest)
+    zip_file.close()
+
+    if not imgs:
+        raise HTTPException(HttpStatusCode.UnprocessableEntity, "No image files found in the ZIP")
+    
+    try:
+        crops = preprocess_img(imgs)
+    except Exception as e:
+        raise HTTPException(HttpStatusCode.UnprocessableEntity, f"Could not crop images: {e}") from e
+    
+    try:
+       npy = await preprocess_feat(crops)
     except Exception as e:
         raise HTTPException(HttpStatusCode.UnprocessableEntity, f"Could not read .npy: {e}") from e
 
